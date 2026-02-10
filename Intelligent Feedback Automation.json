@@ -1,0 +1,392 @@
+{
+  "name": "Intelligent Feedback Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1cr6p36YhO5MBiBTQrWzDGe5gts59TiJP3JoDWVkfJGo",
+          "mode": "list",
+          "cachedResultName": "Intelligent Customer Feedback Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cr6p36YhO5MBiBTQrWzDGe5gts59TiJP3JoDWVkfJGo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1043604471,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cr6p36YhO5MBiBTQrWzDGe5gts59TiJP3JoDWVkfJGo/edit#gid=1043604471"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "58e1110a-a765-4d88-a37f-74e618a08d4c",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "yKybcIVpj6w2MD5n",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dff518c9-798e-4577-858a-2c243e57e4b6",
+              "name": "Rating",
+              "value": "={{ $json['  How would you rate your overall experience?  '] }}",
+              "type": "number"
+            },
+            {
+              "id": "4787de95-546f-4fc2-9025-75dbf6036d35",
+              "name": "Liked",
+              "value": "={{ $json['  What did you like about our service?  '] }}",
+              "type": "string"
+            },
+            {
+              "id": "fae4c97f-88f7-41cc-b50d-a4a0a1029a9d",
+              "name": "Improve",
+              "value": "={{ $json['  What can we improve?  '] }}",
+              "type": "string"
+            },
+            {
+              "id": "30a6b068-b88d-4328-b302-f1e3096aae52",
+              "name": "Comments",
+              "value": "={{ $json['  Any additional comments or concerns?  '] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1ffc93f0-65c8-435c-a534-878969404e69",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Classify the following customer feedback as Positive, Neutral, or Negative.\n\nReturn only valid JSON in this exact format:\n{\n  \"summary\": \"\",\n  \"sentiment\": \"positive|neutral|negative\",\n  \"urgency\": \"low|medium|high\"\n}\n\nDo NOT include any backticks, explanations, or extra text. Only return JSON.\n\nFeedback:\nRating: {{ $json.Rating }}/5\nLiked: {{ $json.Liked }}\nImprove: {{ $json.Improve }}\nComments: {{ $json.Comments }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        0
+      ],
+      "id": "894aa54e-c824-4d4d-bb98-6d296af4996e",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "eOwF2Fr69DHrJA27",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "49eded0c-e30a-4da3-87d4-d352572dc801",
+              "leftValue": "={{ $json.sentiment }}",
+              "rightValue": "negative",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        0
+      ],
+      "id": "597db101-35a7-4209-a531-044746a11d19",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AEF80F7SM",
+          "mode": "list",
+          "cachedResultName": "negative-customer-feedbacks"
+        },
+        "text": "=🚨 *Negative Customer Feedback*  *Summary:* {{ $json.summary }} *Urgency:* {{ $json.urgency }}  Please investigate and respond ASAP.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1136,
+        -144
+      ],
+      "id": "0d0f6f83-19a5-4df3-9473-97df0eed1023",
+      "name": "Send a message",
+      "webhookId": "0a7d12c5-393a-4b82-b989-0d8352255f16",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "Y0wrGLU8Zhw9Fcan",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AEF866G81",
+          "mode": "list",
+          "cachedResultName": "customer-feedbacks"
+        },
+        "text": "=📝 *New Customer Feedback Received*  *Summary:* {{ $json.summary }} *Sentiment:* {{ $json.sentiment }} *Urgency:* {{ $json.urgency }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1136,
+        16
+      ],
+      "id": "e0b2e163-5a48-4129-879c-027182fe85bc",
+      "name": "Send a message1",
+      "webhookId": "1c6b13d0-ffe7-45e4-8b13-dda3f8f9ceb8",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "Y0wrGLU8Zhw9Fcan",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI output as text\nlet text = $input.first().json.output[0].content[0].text\n\n// Remove escaped newlines if present\ntext = text.replace(/\\\\n/g, '').trim();\n\n// Parse JSON\nconst parsed = JSON.parse(text);\n\n// Return as JSON for n8n\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        0
+      ],
+      "id": "e0445490-ee24-4a2f-a750-2c7305feb826",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "Google Sheets Trigger Node:\n- Connected to Google Forms    Customer Feedback Form.\n- Triggers when a customer/client answers the form.",
+        "height": 144
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -112,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "d6f581c5-4cf0-4b31-824b-0cda1074925a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Edit Fields Node:\n- Renamed the variables for readability.",
+        "height": 80,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "ca9642b4-1770-47c9-8537-05722ff91658",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "OpenAI Node:\n- Analyzes the feedback form (paragraph).\n- Summarizes the intent of the feedback (Positive, Neutral, Negative).\n- Reads if the feedback is urgent.",
+        "height": 192,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        384,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "24113c5b-1444-4ba5-bacd-d76a796b803e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Function Node:\n- Converts the output of OpenAI Node into JSON format.",
+        "height": 96,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        608,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "d853ce2a-91b6-4941-9179-0d02bc117dd6",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "If Node:\n- If the sentiment of the feedback is negative, then it will send a message to a designated channel in Slack. If not, then it will send the feedback into another channel in Slack.",
+        "height": 208,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        752,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "0ae8ef06-9f6a-4035-a0b4-d68686c98588",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "Slack Nodes:\n- Sends a message to different channels in Slack for communication.",
+        "height": 112,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1328,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "8ddaf899-8764-44fb-aa39-c28fb583fc4a",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "aae70e5d-5b01-411d-a6e8-4b2d8bd25965",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "51da36e14d282f96fa99554d3a706283144cf5354a057d2d1220bf8f99d36355"
+  },
+  "id": "xPb7oif-tZwiXzypSutjG",
+  "tags": []
+}
